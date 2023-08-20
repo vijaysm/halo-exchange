@@ -18,10 +18,13 @@
  *      -# If debugging is turned on, store mesh file and tag on root process (will now contain data on *all* entities)
  *    -#  Destroy the MOAB instance and finalize MPI
  *
- * <b>To run:</b> \n mpiexec -n np ./ExchangeHalos --input <mpas_mesh_file> --nghosts <ghostlayers> --vtaglength <vector component size> --nexchanges <number of exchange runs> \n
- * <b>Sample:</b> \n mpiexec -n 16 ./ExchangeHalos --input $MOAB_DIR/MeshFiles/unittest/io/mpasx1.642.t.2.nc --nghosts 3 --vtaglength 100 \n
+ * <b>To run: </b>
+ *      mpiexec -n np ./ExchangeHalos --input <mpas_mesh_file> --nghosts <ghostlayers> --vtaglength <vector component size> \
+ *                    --nexchanges <number of exchange runs>
+ * <b>Example:</b>
+ *      mpiexec -n 16 ./ExchangeHalos --input data/default_mesh_holes.h5m --nghosts 3 --vtaglength 100
  *
- * NOTE: --debug option can be added to write out extra files in h5m format to visualize some output (written from root task only) \n
+ * NOTE: --debug option can be added to write out extra files in h5m format to visualize some output (written from root task only)
  *
  */
 // Example Includes

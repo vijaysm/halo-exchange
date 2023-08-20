@@ -65,9 +65,8 @@ struct RuntimeContext
     /// @brief Constructor: allocate MOAB interface and communicator, and initialize
     /// other data members with some default values
     RuntimeContext( MPI_Comm comm = MPI_COMM_WORLD )
-        : input_filename( std::string( MESH_DIR ) + std::string( "/io/mpasx1.642.t.2.nc" ) ),
-          output_filename( "exchangeHalos_output.h5m" ), scalar_tagname( "scalar_variable" ),
-          vector_tagname( "vector_variable" )
+        : input_filename( "data/default_mesh_holes.h5m" ), output_filename( "exchangeHalos_output.h5m" ),
+          scalar_tagname( "scalar_variable" ), vector_tagname( "vector_variable" )
     {
         // Create the moab instance
         moab_interface = new( std::nothrow ) moab::Core;
@@ -98,7 +97,8 @@ struct RuntimeContext
     {
         ProgOptions opts;
         // Input mesh
-        opts.addOpt< std::string >( "input", "Input mesh filename to load in parallel", &input_filename );
+        opts.addOpt< std::string >(
+            "input", "Input mesh filename to load in parallel. Default=data/default_mesh_holes.h5m", &input_filename );
         // Output mesh
         opts.addOpt< void >( "debug", "Should we write output file? Default=false", &debug_output );
         opts.addOpt< std::string >(
@@ -106,7 +106,7 @@ struct RuntimeContext
             &output_filename );
         // Dimension of the input mesh
         // Vector tag length
-        opts.addOpt< int >( "vtaglength", "Size of vector components per each entity. Ddefault=3", &vector_length );
+        opts.addOpt< int >( "vtaglength", "Size of vector components per each entity. Default=3", &vector_length );
         // Number of halo (ghost) regions
         opts.addOpt< int >( "nghosts", "Number of ghost layers (halos) to exchange. Default=3", &ghost_layers );
         // Number of times to perform the halo exchange for timing
