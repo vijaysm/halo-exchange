@@ -94,9 +94,11 @@ moab::ErrorCode RuntimeContext::load_file( bool load_ghosts )
             read_options += "PARALLEL=READ_PART;PARTITION_METHOD=RCBZOLTAN;"
                             "PARALLEL_RESOLVE_SHARED_ENTS;NO_EDGES;NO_MIXED_ELEMENTS;VARIABLE=;";
         else if( !extension.compare( "h5m" ) )
-            read_options += "PARALLEL=READ_PART;PARTITION=PARALLEL_PARTITION;"
-                            "PARALLEL_RESOLVE_SHARED_ENTS;" +
-                            ( load_ghosts ? "PARALLEL_GHOSTS=2.1." + std::to_string( ghost_layers ) + ";" : "" );
+            read_options +=
+                "PARALLEL=READ_PART;PARTITION=PARALLEL_PARTITION;"
+                "PARALLEL_RESOLVE_SHARED_ENTS;" +
+                ( load_ghosts ? "PARALLEL_THIN_GHOST_LAYER;PARALLEL_GHOSTS=2.1." + std::to_string( ghost_layers ) + ";"
+                              : "" );
         else
         {
             std::cout << "Error unsupported file type (only h5m and nc) for this example: " << input_filename

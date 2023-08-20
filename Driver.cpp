@@ -69,7 +69,7 @@ int main( int argc, char** argv )
         context.timer_push( "Read input file" );
         {
             // Load the file from disk with given options
-            runchk( context.load_file(), "MOAB::load_file failed for filename: " << context.input_filename );
+            runchk( context.load_file( false ), "MOAB::load_file failed for filename: " << context.input_filename );
         }
         context.timer_pop();
         elapsed_times[0] = context.last_elapsed();
