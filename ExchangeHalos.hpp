@@ -180,4 +180,4 @@ struct RuntimeContext
     std::string mOpName;
 };
 
-#endif // #ifndef __ExchangeHalos_hpp_
+#endif  // #ifndef __ExchangeHalos_hpp_

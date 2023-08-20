@@ -5,6 +5,12 @@
 #include <iostream>
 #include <string>
 
+/// @brief Evaluate some closed-form Spherical Harmonic functions with an optional multiplier term
+/// @param lon Longitude in lat-lon space
+/// @param lat Latitude  in lat-lon space
+/// @param type Function type
+/// @param multiplier Optional multiplier to scale value (default=1.0)
+/// @return
 static double evaluate_function( double lon, double lat, int type = 1, double multiplier = 1.0 )
 {
     switch( type )
@@ -25,13 +31,15 @@ moab::ErrorCode RuntimeContext::create_sv_tags( moab::Tag& tagScalar, moab::Tag&
     if( proc_id == 0 ) std::cout << "> Getting scalar tag handle " << scalar_tagname << "..." << std::endl;
     double defSTagValue = -1.0;
     bool createdTScalar = false;
-    // Create the scalar exchange tag: default name = "scalar_variable"
+    // Get or create the scalar tag: default name = "scalar_variable"
+    // Type: double, Components: 1, Layout: Dense (all entities potentially), Default: -1.0
     runchk( moab_interface->tag_get_handle( scalar_tagname.c_str(), 1, moab::MB_TYPE_DOUBLE, tagScalar,
                                             moab::MB_TAG_CREAT | moab::MB_TAG_DENSE, &defSTagValue, &createdTScalar ),
             "Retrieving scalar tag handle failed" );
 
+    // we expect to create a new tag -- fail if Tag already exists since we do not want to overwrite data
     assert( createdTScalar );
-    // set the data for scalar tag
+    // set the data for scalar tag with an analytical Spherical Harmonic function
     {
         std::vector< double > tagValues( entities.size(), -1.0 );
         std::generate( tagValues.begin(), tagValues.end(), [=, &entCoords]() {
@@ -47,14 +55,17 @@ moab::ErrorCode RuntimeContext::create_sv_tags( moab::Tag& tagScalar, moab::Tag&
     if( proc_id == 0 ) std::cout << "> Getting vector tag handle " << vector_tagname << "..." << std::endl;
     std::vector< double > defVTagValue( vector_length, -1.0 );
     bool createdTVector = false;
-    // Create the scalar exchange tag: default name = "vector_variable"
+    // Get or create the scalar tag: default name = "vector_variable"
+    // Type: double, Components: vector_length, Layout: Dense (all entities potentially), Default: [-1.0,..]
     runchk( moab_interface->tag_get_handle( vector_tagname.c_str(), vector_length, moab::MB_TYPE_DOUBLE, tagVector,
                                             moab::MB_TAG_CREAT | moab::MB_TAG_DENSE, defVTagValue.data(),
                                             &createdTVector ),
             "Retrieving vector tag handle failed" );
 
+    // we expect to create a new tag -- fail if Tag already exists since we do not want to overwrite data
     assert( createdTVector );
-    // set the data for vector tag
+    // set the data for vector tag with an analytical Spherical Harmonic function
+    // with an optional scaling for each component; just to make it look different :-)
     {
         const int veclength = vector_length;
         std::vector< double > tagValues( entities.size() * veclength, -1.0 );
@@ -75,8 +86,8 @@ moab::ErrorCode RuntimeContext::load_file( bool load_ghosts )
 {
     /// Parallel Read options:
     ///   PARALLEL = type {READ_PART} : Read on all tasks
-    ///   PARTITION_METHOD = RCBZOLTAN : Use Zoltan partitioner to compute an online partition and redistribute on the fly
-    ///   PARTITION = PARALLEL_PARTITION : Partition as you read based on part information stored in h5m file
+    ///   PARTITION_METHOD = RCBZOLTAN : Use Zoltan partitioner to compute an online partition and redistribute on the
+    ///   fly PARTITION = PARALLEL_PARTITION : Partition as you read based on part information stored in h5m file
     ///   PARALLEL_RESOLVE_SHARED_ENTS : Communicate to all processors to get the shared adjacencies
     ///   consistently in parallel
     ///   PARALLEL_GHOSTS : a.b.c
@@ -107,7 +118,7 @@ moab::ErrorCode RuntimeContext::load_file( bool load_ghosts )
         }
     }
 
-    // Load the file from disk with given read options in parallel
+    // Load the file from disk with given read options in parallel and associate all entities to fileset
     return moab_interface->load_file( input_filename.c_str(), &fileset, read_options.c_str() );
 }
 
@@ -121,7 +132,7 @@ std::vector< double > RuntimeContext::compute_centroids( const moab::Range& enti
         // Get the element coordinates (centroid) on the real mesh
         runchk_cont( moab_interface->get_coords( &entity, 1, node ), "Getting entity coordinates failed" );
 
-        // scale by magnitude so that mesh is on unit sphere
+        // scale by magnitude so that element is on unit sphere
         double magnitude = std::sqrt( node[0] * node[0] + node[1] * node[1] + node[2] * node[2] );
         node[0] /= magnitude;
         node[1] /= magnitude;
@@ -134,5 +145,6 @@ std::vector< double > RuntimeContext::compute_centroids( const moab::Range& enti
 
         offset += 2;  // increment the offset
     }
+    // return centroid list for elements
     return eCentroids;
 }

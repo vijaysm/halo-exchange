@@ -19,12 +19,14 @@
  *    -#  Destroy the MOAB instance and finalize MPI
  *
  * <b>To run: </b>
- *      mpiexec -n np ./ExchangeHalos --input <mpas_mesh_file> --nghosts <ghostlayers> --vtaglength <vector component size> \
+ *      mpiexec -n np ./ExchangeHalos --input <mpas_mesh_file> --nghosts <ghostlayers> --vtaglength <vector component
+ * size> \
  *                    --nexchanges <number of exchange runs>
  * <b>Example:</b>
  *      mpiexec -n 16 ./ExchangeHalos --input data/default_mesh_holes.h5m --nghosts 3 --vtaglength 100
  *
- * NOTE: --debug option can be added to write out extra files in h5m format to visualize some output (written from root task only)
+ * NOTE: --debug option can be added to write out extra files in h5m format to visualize some output (written from root
+ * task only)
  *
  */
 // Example Includes
@@ -46,6 +48,7 @@ int main( int argc, char** argv )
     MPI_Init( &argc, &argv );
 
     {
+        // Create our context for this example run
         RuntimeContext context;
         dbgprint( "********** Exchange halos example **********\n" );
 
@@ -66,6 +69,8 @@ int main( int argc, char** argv )
         // Timer storage for all phases
         double elapsed_times[4];
 
+        // Read the input file specified by user, in parallel, using appropriate options
+        // Supports reading partitioned h5m files and MPAS nc files directly with online Zoltan partitioning
         context.timer_push( "Read input file" );
         {
             // Load the file from disk with given options
@@ -74,8 +79,11 @@ int main( int argc, char** argv )
         context.timer_pop();
         elapsed_times[0] = context.last_elapsed();
 
+        // Let the actual measurements begin...
         dbgprint( "\n- Starting execution -\n" );
 
+        // We need to set up the ghost layers requested by the user. First correct for thin layers and then
+        // call `exchange_ghost_cells` to prepare the mesh for use with halo regions
         context.timer_push( "Setup ghost layers" );
         {
             // Ensure that all processes understand about multi-shared vertices and entities
@@ -94,6 +102,7 @@ int main( int argc, char** argv )
         context.timer_pop();
         elapsed_times[1] = context.last_elapsed();
 
+        // Get the 2D MPAS elements and filter it so that we have only owned elements
         Range dimEnts;
         {
             // Get all entities of dimension = dim
@@ -109,14 +118,21 @@ int main( int argc, char** argv )
             int numTotalEntities = 0;
             MPI_Reduce( &numEntities, &numTotalEntities, 1, MPI_INT, MPI_SUM, 0,
                         context.parallel_communicator->proc_config().proc_comm() );
+
+            // We expect the total number of elements to be constant, immaterial of number of processes.
+            // If not, we have a bug!
             dbgprint( "Total number of " << context.dimension << "D elements in the mesh = " << numTotalEntities );
         }
 
-        // Create two tag handles: Exchange and Reduction operations
         Tag tagScalar = nullptr;
         Tag tagVector = nullptr;
+        // Create two tag handles: scalar_variable and vector_variable
+        // Set these tags with appropriate closed form functional data
+        // based on element centroid information
         runchk( context.create_sv_tags( tagScalar, tagVector, dimEnts ), "Unable to create scalar and vector tags" );
 
+        // let us write out the local mesh before tag_exchange is called
+        // we expect to see data only on the owned entities - and ghosted entities should have default values
         if( context.debug_output && ( context.proc_id == 0 ) )  // only on root process, for debugging
         {
             dbgprint( "> Writing to file *before* ghost exchange " );
@@ -146,6 +162,8 @@ int main( int argc, char** argv )
         context.timer_pop( context.num_max_exchange );
         elapsed_times[3] = context.last_elapsed();
 
+        // let us write out the local mesh after tag_exchange is called
+        // we expect to see real data on both owned and ghost entities in halo regions (non-default values)
         if( context.debug_output && ( context.proc_id == 0 ) )  // only on root process, for debugging
         {
             dbgprint( "> Writing to file *after* ghost exchange " );
@@ -153,6 +171,7 @@ int main( int argc, char** argv )
                     "Writing to disk failed" );
         }
 
+        // Write out the final mesh with the tag data and mesh -- just for verification
         if( context.debug_output )
         {
             dbgprint( "> Writing out the final mesh and data in MOAB h5m format. File = " << context.output_filename );
@@ -162,10 +181,14 @@ int main( int argc, char** argv )
                     "File write failed" );
         }
 
+        // Consolidated timing results: the data is listed as follows
+        // [ntasks,  nghosts,  load_mesh(I/O),  exchange_ghost_cells(setup), exchange_tags(scalar),
+        // exchange_tags(vector)]
         dbgprint( "\n> Consolidated: [" << context.num_procs << ", " << context.ghost_layers << ", " << elapsed_times[0]
                                         << ", " << elapsed_times[1] << ", " << elapsed_times[2] << ", "
                                         << elapsed_times[3] << "]," );
 
+        // execution finished
         dbgprint( "\n********** ExchangeHalos Example DONE! **********" );
     }
     // Done, cleanup
