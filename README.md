@@ -1,6 +1,6 @@
 # ExchangeHalos Example
  
-This MOAB based MPI example program shows the use case for performing tag data exchange between parallel processors in order to sync data on shared entities. We define both scalar and vector variables on the mesh as tags, and depending on the requested number of ghost (or halo) layers, the field exchange is performed and communication time is measured.
+This [MOAB](https://bitbucket.org/fathomteam/moab) based MPI example program shows the use case for performing tag data exchange between parallel processors in order to sync data on shared entities. We define both scalar and vector variables on the mesh as tags, and depending on the requested number of ghost (or halo) layers, the field exchange is performed and communication time is measured.
 
  ## Workflow
 
@@ -41,3 +41,15 @@ The communication kernels are scaling well up to 8192 processes on both machine.
 ## NOTE:
 
 `--debug` option can be added to write out extra files in h5m format to visualize some outputs (written from root task only)
+
+## Relevant Links
+
+[MOAB Repository](https://bitbucket.org/fathomteam/moab)
+
+[MOAB Documentation](https://web.cels.anl.gov/projects/sigma/docs/moab/index.html)
+
+[MOAB Webpage](https://sigma.mcs.anl.gov/moab-library/)
+
+## Contact
+
+Vijay Mahadevan
