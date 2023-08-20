@@ -1,0 +1,4 @@
+*.o
+ExchangeHalos
+.DS_Store
+exchangeHalos_output*
