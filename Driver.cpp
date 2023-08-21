@@ -86,18 +86,24 @@ int main( int argc, char** argv )
         // call `exchange_ghost_cells` to prepare the mesh for use with halo regions
         context.timer_push( "Setup ghost layers" );
         {
-            // Ensure that all processes understand about multi-shared vertices and entities
-            // in case some adjacent parts are only m layers thick (where m < context.ghost_layers)
-            runchk( context.parallel_communicator->correct_thin_ghost_layers(), "Thin layer correction failed" );
+            // Loop over the number of ghost layers needed and ask MOAB for layers 1 at a time
+            for( int ighost = 0; ighost < context.ghost_layers; ++ighost )
+            {
+                // Exchange ghost cells
+                int ghost_dimension  = context.dimension;
+                int bridge_dimension = context.dimension - 1;
+                // Let us now get all ghost layers from adjacent parts
+                runchk( context.parallel_communicator->exchange_ghost_cells(
+                            ghost_dimension, bridge_dimension, ( ighost + 1 ), 0, true /* store_remote_handles */,
+                            true /* wait_all */, &context.fileset ),
+                        "Exchange ghost cells failed" );  // true to store remote handles
 
-            // Exchange ghost cells
-            int ghost_dimension  = context.dimension;
-            int bridge_dimension = context.dimension - 1;
-            // Let us now get all ghost layers from adjacent parts
-            runchk( context.parallel_communicator->exchange_ghost_cells(
-                        ghost_dimension, bridge_dimension, context.ghost_layers, 0, true /* store_remote_handles */,
-                        true /* wait_all */, &context.fileset ),
-                    "Exchange ghost cells failed" );  // true to store remote handles
+                // Ensure that all processes understand about multi-shared vertices and entities
+                // in case some adjacent parts are only m layers thick (where m < context.ghost_layers)
+                if( ighost < context.ghost_layers - 1 )
+                    runchk( context.parallel_communicator->correct_thin_ghost_layers(),
+                            "Thin layer correction failed" );
+            }
         }
         context.timer_pop();
         elapsed_times[1] = context.last_elapsed();
